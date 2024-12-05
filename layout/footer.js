@@ -30,7 +30,7 @@ document.writeln("          <div class=\'col-lg-3 col-md-6 footer-links\'>");
 document.writeln("            <h4>支持</h4>");
 document.writeln("            <ul class=\'foot-ul\'>");
 document.writeln("              <li><i class=\'fa-brands fa-html5\'></i> <a target=\'_blank\' href=\'../../../../../../gp-backup/\'>设计模板 Template</a></li>");
-document.writeln("              <li><i class=\'fa-regular fa-comments\'></i> <a target=\'_blank\' href=\'http://ics.flarum.cloud\'>论坛 ICS Forum</a></li>");
+document.writeln("              <li><i class=\'fa-regular fa-comments\'></i> <a target=\'_blank\' href=\'http://forum.icsin.top\'>论坛 ICS Forum</a></li>");
 document.writeln("              <li><i class=\'bi bi-link-45deg\'></i> <a target=\'_blank\' href=\'links\'>使用链接 Links</a></li>");
 document.writeln("              <li><i class=\'bi bi-people-fill\'></i> <a target=\'_blank\' href=\'//waston101.github.io\' title=\'强大的原生软件开发团队\'>InnerSon-Development</a></li>");
 document.writeln("              <h5>More links are preparing...</h5>");
