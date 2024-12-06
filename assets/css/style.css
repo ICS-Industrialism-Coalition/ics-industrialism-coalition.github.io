@@ -44,23 +44,23 @@
 }
 @font-face{
   font-family: '华康翩翩体W5P';
-  src: url("../../../../../../assets/font/华康翩翩体W5P.ttf");
+  src: url("//cdn.icsin.top/assets/font/华康翩翩体W5P.ttf");
 }
 @font-face{
   font-family: 'Orbitron';
-  src: url("../../../../../../assets/font/Orbitron.ttf");
+  src: url("//cdn.icsin.top/assets/font/Orbitron.ttf");
 }
 /*@font-face{
   font-family: 'minecraftia';
-  src: url("../../../../../../assets/font/minecraftia.ttf");
+  src: url("//cdn.icsin.top/assets/font/minecraftia.ttf");
 }*/
 @font-face{
   font-family: '杨任东竹石体-Light';
-  src: url("../../../../../../assets/font/杨任东竹石体-Light.ttf");
+  src: url("//cdn.icsin.top/assets/font/杨任东竹石体-Light.ttf");
 }
 @font-face{
   font-family: '思源黑体 CN Light';
-  src: url('../../../../../../assets/font/思源黑体 CN Light.otf');
+  src: url('//cdn.icsin.top/assets/font/思源黑体 CN Light.otf');
 }
 
 a {
@@ -1494,7 +1494,7 @@ section {
    border-radius: 7px;
 }
 
-.container1 {
+.container-resources {
   display: flex;
   flex-wrap: wrap;
   --bs-gutter-x: 1.5rem;
@@ -1506,6 +1506,7 @@ section {
   justify-content: center;
   background-image: url("https://s1.ax1x.com/2022/12/22/zXezN9.jpg");
   background-attachment: fixed;
+  background-size: cover;
 }
 
 .container2 {
@@ -1596,14 +1597,8 @@ section {
   transition: all 0.3s;
 }
 
-/*    <div class="container2">
-        <div id="v-card">
-          <a target="_blank" href="index/01.html"><img src="cover/[1.15-1.16]全自动蜂蜜农场教程 - 100+蜂蜜.小时.mp4.jpg" class="rounded" id="v-img">
-          <h5>[1.15-1.16]全自动蜂蜜农场教程 - 100+蜂蜜/小时</h5></a>
-        </div>
-      </div>  */
 .v-inner-page { 
-  background: url('../../../../../../assets/img/spci-bg.jpg');
+  background: url('//cdn.icsin.top/assets/img/spci-bg.jpg');
   background-size: cover;
   background-position: center;
 }
