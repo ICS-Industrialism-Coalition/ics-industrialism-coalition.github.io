@@ -764,8 +764,13 @@ section {
 /*--------------------------------------------------------------
 # Cta
 --------------------------------------------------------------*/
-.cta {
-  background: linear-gradient(rgba(2, 2, 2, 0.5), rgba(0, 0, 0, 0.5)), url("https://s21.ax1x.com/2024/11/29/pA5f5dA.jpg") fixed center center;
+.cta:before {
+  background: linear-gradient(rgba(2, 2, 2, 0.5), rgba(0, 0, 0, 0.5)), url("https://s21.ax1x.com/2024/11/29/pA5f5dA.jpg") center 0 no-repeat;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background-size: cover;
   padding: 60px 0;
 }
