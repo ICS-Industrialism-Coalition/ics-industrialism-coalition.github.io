@@ -1,6 +1,6 @@
 document.writeln("  <link href=\'../../../../../../assets/img/favicon.png\' rel=\'icon\'>");
 document.writeln("  <link href=\'../../../../../../assets/img/apple-touch-icon.png\' rel=\'apple-touch-icon\'>");
-document.writeln("  <link href=\'https://cdn.bootcdn.net/ajax/libs/aos/2.3.4/aos.css\' rel=\'stylesheet\'>");
+document.writeln("  <link href=\'https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.min.css\' rel=\'stylesheet\'>");
 document.writeln("  <link href=\'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\' rel=\'stylesheet\'>");
 document.writeln("  <link href=\'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css\' rel=\'stylesheet\'>");
 document.writeln("  <link href=\'https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css\' rel=\'stylesheet\'>");
