@@ -1,6 +1,6 @@
 var art = new Artplayer({
     container: '.artplayer-app',
-    url: 'https://link.icsin.top:81/tomorrow/2017 Tomorrowland Chace.mp4',
+    url: 'https://cdn.jsdelivr.net/gh/Nag1sann/Nag1sann.github.io@main/icsin/resources/video/tomorrow/2017/chace/main.m3u8',
     setting: true,
     playsInline: true,
     backdrop: true,
