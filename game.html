@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼图小游戏</title>
+    <script src="assets/3.4.17.js"></script>
+    <script src="assets/anime.min.js"></script>
+    <style>
+        
+        * { font-family: 'Noto Sans SC', sans-serif; user-select: none; }
+        
+        body {
+            background: url("285bd207b8e02eae70f58fb867e7d94e.png") fixed;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* --- 卡牌核心样式 --- */
+        .card-container {
+            perspective: 1000px;
+            width: 120px;
+            height: 417px;
+            margin: 1px; /* 卡牌间距 */
+            position: positive;
+            transition: transform 0.2s;
+        }
+
+        .card {
+            width: 88px;
+            height: 405px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            border-radius: 6px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            cursor: grab;
+        }
+
+        /* 激活状态：拖拽中 */
+        .card-container.dragging .card {
+            box-shadow: 0 12px 48px rgba(108, 92, 231, 0.6);
+            z-index: 100;
+            cursor: grabbing;
+        }
+
+        #cardsContainer {
+            position: relative;
+            margin: 6px 0 0 0;
+            width: 800px;
+        }
+
+        /* 状态：背面朝上 */
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* 锁定状态：金色边框 */
+        .card.locked::after {
+            content: '🔒';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 24px;
+            z-index: 10;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+        .card.locked {
+            box-shadow: 0 0 15px #ffd700;
+            border: 2px solid #ffd700;
+        }
+
+        /* 新增：永久揭示状态（绿色光晕） */
+        .card.revealed {
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.8);
+            border: 2px solid rgba(52, 211, 153, 0.8);
+        }
+        .card.revealed::after {
+            content: '✨';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 24px;
+            z-index: 10;
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 正面：拼图 (RotateY 0) */
+        .card-front {
+            background-color: #fff;
+            transform: rotateY(0deg);
+        }
+
+        /* 背面：图案 (RotateY 180) */
+        .card-back {
+            background: linear-gradient(135deg, #d4cab1 0%, #dbceac 100%);
+            transform: rotateY(180deg);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        /* 拼图切片样式 */
+        .puzzle-piece {
+            min-width: 100%;
+            aspect-ratio: 88 /405;
+            background-image: url('1.png'); 
+            background-size: 700% 100%; /* 7张牌宽 */
+            background-repeat: no-repeat;
+        }
+                
+        .preview-image {
+            width: 616px;
+            aspect-ratio: 616 / 405;
+            border-radius: 6px;
+            background-image: url('1.png');
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.5s ease;
+        }
+        
+        /*.preview-image.blur {
+            filter: blur(15px);
+            opacity: 0.6;
+        }*/
+        
+        /* --- 按钮样式 --- */
+        .btn-base {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 100px;
+        }
+        .btn-base:active { transform: scale(0.95); }
+        .btn-base:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #e6d8bb 0%, #856227 100%);
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4);
+            border-radius: 12px;
+        }
+        
+        .btn-special {
+            background: linear-gradient(135deg, #cda455 0%, #c7a78e 100%);
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+            border-radius: 12px;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
+            box-shadow: 0 4px 15px rgba(221, 36, 118, 0.4);
+            border-radius: 12px;
+        }
+        
+        .counter-badge {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-top: 4px;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .interaction-mask {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .interaction-mask.active { opacity: 1; }
+        
+        .glow-text {
+            text-shadow: 0 0 10px rgba(255,255,255,0.5), 0 0 20px rgba(108, 92, 231, 0.5);
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <div class="text-center mb-10">
+            <h1 class="text-5xl font-bold text-white glow-text mb-2">拼图挑战</h1>
+            <div class="inline-block bg-white/10 backdrop-blur-md rounded-full px-6 py-2 border border-white/20">
+                <span class="text-cyan-300 font-bold text-xl" id="totalRoundDisplay">第 1 回合</span>
+            </div>
+        </div>
+        
+        <div class="flex flex-col justify-center items-center gap-12 mb-12">
+            
+            <div class="flex gap-2 p-6 bg-white/5 rounded-2xl backdrop-blur-sm border border-white/10" id="cardsContainer">
+                </div>
+
+            <div class="flex flex-col items-center gap-6">
+                <div class="relative group">
+                    <div id="previewImage" class="preview-image"></div>
+                    <div class="absolute bottom-2 left-0 w-full text-center text-white/80 text-sm drop-shadow-md">完整预览</div>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <button class="btn-primary w-40" id="modeToggleBtn">切换模式</button>
+                    <div class="text-cyan-300 mt-2 text-sm font-bold">
+                        当前: <span id="modeText">正方模式</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+            
+            <div class="flex justify-center gap-4 bg-black/20 p-4 rounded-xl">
+                <button class="btn-primary px-8 py-3" id="resetBtn">
+                    <span>重置</span></br>
+                    <span class="text-xs opacity-70 font-normal mt-1">清空回合</span>
+                </button>
+                <button class="btn-primary px-8 py-3" id="invalidBtn">
+                    <span>无效</span></br>
+                    <span class="text-xs opacity-70 font-normal mt-1">恢复存档</span>
+                </button>
+                <button class="btn-primary px-8 py-3" id="saveBtn">
+                    <span>保存</span></br>
+                    <span class="text-xs opacity-70 font-normal mt-1">保存并下一轮</span>
+                </button>
+            </div>
+
+            <div class="flex justify-center gap-6 bg-black/20 p-4 rounded-xl">
+                <div class="flex flex-col items-center">
+                    <button class="btn-special px-8 py-3" id="viewBtn">
+                        查看
+                    </button>
+                    <div class="counter-badge text-white" id="viewCounter">0</div>
+                    <div class="text-xs text-gray-400 mt-1">正方模式可用</div>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <button class="btn-special px-8 py-3" id="lockBtn">
+                        锁定
+                    </button>
+                    <div class="counter-badge text-white" id="lockCounter">0</div>
+                    <div class="text-xs text-gray-400 mt-1">限2次</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-12 text-center">
+            <div class="bg-black/30 inline-block px-8 py-4 rounded-xl backdrop-blur-md border border-white/5">
+                <div class="text-gray-400 text-sm mb-2">当前拼图顺序 (ID)</div>
+                <div id="orderDisplay" class="text-xl text-cyan-400 font-mono tracking-wider">[1, 2, 3, 4, 5, 6, 7]</div>
+            </div>
+            
+            <div class="mt-8">
+                <button class="btn-danger px-8 py-3 rounded-full" id="clearAllBtn">
+                    清空全部数据 (重新开始)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="interactionMask" class="interaction-mask">
+        <span id="interactionText">请选择一张卡牌...</span>
+    </div>
+
+    <script>
+        const CONFIG = {
+            cardCount: 7,
+            maxRounds: 8,
+            maxLocks: 2,
+            storageKey: 'puzzle_game_state'
+        };
+    
+        class PuzzleGame {
+            constructor() {
+                this.state = {
+                    round: 1,
+                    viewCount: 0,
+                    lockCount: 0,
+                    isSquareMode: true, 
+                    currentOrder: [], 
+                    lockedCards: [], 
+                    permanentRevealed: [],
+                    interactionMode: 'idle',
+                    // 新增：存储卡牌ID对应的随机数 { id: number }
+                    cardNumbers: {} 
+                };
+                
+                this.cards = []; 
+                this.correctOrder = Array.from({length: CONFIG.cardCount}, (_, i) => i + 1);
+                
+                this.init();
+            }
+    
+            init() {
+                this.loadState();
+                this.initUI();
+                this.setupEvents();
+                this.render();
+            }
+    
+            // 新增：生成不重复的随机数并绑定到卡牌ID
+            generateCardNumbers() {
+                // 创建 1-100 的数组
+                const pool = Array.from({length: 100}, (_, i) => i + 1);
+                // 洗牌算法 (Fisher-Yates)
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                
+                const numMap = {};
+                // 为每个正确的卡牌ID分配一个随机数
+                this.correctOrder.forEach((cardId, index) => {
+                    numMap[cardId] = pool[index];
+                });
+                
+                return numMap;
+            }
+    
+            loadState() {
+                const saved = localStorage.getItem(CONFIG.storageKey);
+                if (saved) {
+                    this.state = { ...this.state, ...JSON.parse(saved) };
+                    if (!this.state.permanentRevealed) this.state.permanentRevealed = [];
+                    
+                    // 如果旧存档没有随机数，或者随机数数量不对，补充生成
+                    if (!this.state.cardNumbers || Object.keys(this.state.cardNumbers).length === 0) {
+                         this.state.cardNumbers = this.generateCardNumbers();
+                    }
+                } else {
+                    this.state.currentOrder = this.shuffle([...this.correctOrder]);
+                    // 新游戏初始化随机数
+                    this.state.cardNumbers = this.generateCardNumbers();
+                }
+            }
+    
+            saveState() {
+                localStorage.setItem(CONFIG.storageKey, JSON.stringify(this.state));
+                this.updateOrderDisplay();
+            }
+    
+            shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+    
+            initUI() {
+                const container = document.getElementById('cardsContainer');
+                container.innerHTML = '';
+                this.cards = [];
+    
+                this.state.currentOrder.forEach((id) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'card-container';
+                    wrapper.dataset.id = id;
+    
+                    const card = document.createElement('div');
+                    card.className = `card ${this.state.isSquareMode ? 'flipped' : ''}`;
+                    
+                    if (this.state.lockedCards.includes(id)) card.classList.add('locked');
+                    if (this.state.permanentRevealed.includes(id)) card.classList.add('revealed');
+    
+                    // 正面
+                    const front = document.createElement('div');
+                    front.className = 'card-face card-front';
+                    const puzzle = document.createElement('div');
+                    puzzle.className = 'puzzle-piece';
+                    const bgPositionX = ((id - 1) / (CONFIG.cardCount - 1)) * 100;
+                    puzzle.style.backgroundPosition = `${bgPositionX}% 0`;
+                    front.appendChild(puzzle);
+    
+                    // --- 修改点开始 ---
+                    // 获取当前卡牌ID对应的随机数
+                    const randomNum = this.state.cardNumbers[id];
+    
+                    // 背面
+                    const back = document.createElement('div');
+                    back.className = 'card-face card-back';
+                    // 使用 randomNum 替换原来的 ${ca}
+                    back.innerHTML = `<span style="font-size:40px; color:white;">${randomNum}</span>`;
+                    // --- 修改点结束 ---
+    
+                    card.appendChild(front);
+                    card.appendChild(back);
+                    wrapper.appendChild(card);
+                    container.appendChild(wrapper);
+                    this.setupDrag(wrapper);
+                    wrapper.addEventListener('click', () => this.handleCardClick(id, card));
+    
+                    this.cards.push({ id, element: wrapper, cardInner: card });
+                });
+    
+                this.updateModeUI();
+                this.updateCounters();
+                this.updateOrderDisplay();
+            }
+    
+            render() {}
+    
+            setupDrag(element) {
+                let isDragging = false;
+                let startX = 0;
+                let originalIndex = 0;
+                
+                const onMouseDown = (e) => {
+                    const id = parseInt(element.dataset.id);
+                    if (this.state.lockedCards.includes(id) || this.state.interactionMode !== 'idle') return;
+                    
+                    isDragging = true;
+                    startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                    originalIndex = this.state.currentOrder.indexOf(id);
+                    
+                    element.classList.add('dragging');
+                    
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('touchmove', onMouseMove, {passive: false});
+                    document.addEventListener('mouseup', onMouseUp);
+                    document.addEventListener('touchend', onMouseUp);
+                };
+    
+                const onMouseMove = (e) => {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    
+                    const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                    const deltaX = clientX - startX;
+                    
+                    element.querySelector('.card').style.transform = 
+                        `${this.state.isSquareMode ? 'rotateY(180deg)' : 'rotateY(0)'} translateX(${deltaX}px) rotateZ(${deltaX * 0.05}deg)`;
+    
+                    const container = document.getElementById('cardsContainer');
+                    const children = Array.from(container.children);
+                    const cardWidth = 136; 
+                    
+                    const moveIndex = Math.round(deltaX / cardWidth);
+                    let newIndex = originalIndex + moveIndex;
+                    newIndex = Math.max(0, Math.min(newIndex, CONFIG.cardCount - 1));
+    
+                    if (newIndex !== originalIndex) {
+                        const targetElement = children[newIndex];
+                        if (targetElement && targetElement !== element) {
+                            if (newIndex > originalIndex) {
+                                container.insertBefore(element, targetElement.nextSibling);
+                            } else {
+                                container.insertBefore(element, targetElement);
+                            }
+                            
+                            const movedId = this.state.currentOrder.splice(originalIndex, 1)[0];
+                            this.state.currentOrder.splice(newIndex, 0, movedId);
+                            
+                            originalIndex = newIndex;
+                            startX = clientX; 
+                        }
+                    }
+                };
+    
+                const onMouseUp = () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    element.classList.remove('dragging');
+                    element.querySelector('.card').style.transform = ''; 
+                    
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('touchmove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    document.removeEventListener('touchend', onMouseUp);
+    
+                    this.updateOrderDisplay();
+                    this.checkWin();
+                };
+    
+                element.addEventListener('mousedown', onMouseDown);
+                element.addEventListener('touchstart', onMouseDown);
+            }
+    
+            handleCardClick(id, cardElement) {
+                if (this.state.interactionMode === 'viewing') {
+                    if (this.state.isSquareMode) {
+                        cardElement.classList.remove('flipped'); 
+                    }
+                    this.endInteractionMode();
+    
+                } else if (this.state.interactionMode === 'locking') {
+                    const currentIndex = this.state.currentOrder.indexOf(id);
+                    const correctIndex = id - 1;
+    
+                    if (currentIndex === correctIndex) {
+                        this.lockCard(id);
+                        this.showMessage("锁定成功！", "success");
+                    } else {
+                        this.showMessage("位置不正确，无法锁定", "error");
+                    }
+                    this.endInteractionMode();
+                }
+            }
+    
+            lockCard(id) {
+                if (!this.state.lockedCards.includes(id)) {
+                    this.state.lockedCards.push(id);
+                    const cardObj = this.cards.find(c => c.id === id);
+                    if (cardObj) {
+                        cardObj.cardInner.classList.add('locked');
+                        cardObj.cardInner.classList.remove('flipped');
+                    }
+                    this.saveState();
+                }
+            }
+    
+            setupEvents() {
+                document.getElementById('modeToggleBtn').addEventListener('click', () => {
+                    this.state.isSquareMode = !this.state.isSquareMode;
+                    this.updateModeUI();
+                    this.saveState();
+                });
+    
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.state.round = 1;
+                    this.updateCounters();
+                    this.saveState();
+                    this.showMessage("回合数已重置");
+                });
+    
+                document.getElementById('invalidBtn').addEventListener('click', () => {
+                    this.loadState();
+                    this.initUI();
+                    this.showMessage("已恢复到上次保存的状态");
+                });
+    
+                document.getElementById('saveBtn').addEventListener('click', () => {
+                    if (this.state.round === CONFIG.maxRounds) {
+                        const availableCards = this.state.currentOrder.filter(id => 
+                            !this.state.lockedCards.includes(id) && 
+                            !this.state.permanentRevealed.includes(id)
+                        );
+    
+                        if (availableCards.length > 0) {
+                            const randomId = availableCards[Math.floor(Math.random() * availableCards.length)];
+                            this.state.permanentRevealed.push(randomId);
+                            this.showMessage("第8回合达成：已自动永久揭示一张卡牌！", "success");
+                            this.initUI(); 
+                        } else {
+                            this.showMessage("第8回合结束（无更多卡牌可揭示）");
+                        }
+                    } else {
+                         this.showMessage(`保存成功！进入第 ${this.state.round + 1} 回合`);
+                    }
+    
+                    this.state.round++;
+                    this.saveState();
+                    this.updateCounters();
+                });
+    
+                document.getElementById('viewBtn').addEventListener('click', () => {
+                    if (!this.state.isSquareMode) {
+                        this.showMessage("只能在正方模式(背面)下使用查看功能", "error");
+                        return;
+                    }
+                    this.state.viewCount++;
+                    this.updateCounters();
+                    this.startInteractionMode('viewing', "请点击一张卡牌进行查看");
+                });
+    
+                document.getElementById('lockBtn').addEventListener('click', () => {
+                    if (this.state.lockCount >= CONFIG.maxLocks) return;
+                    this.state.lockCount++;
+                    this.updateCounters();
+                    this.startInteractionMode('locking', "请选择一张位置正确的卡牌进行锁定");
+                });
+    
+                document.getElementById('clearAllBtn').addEventListener('click', () => {
+                    if(confirm("确定要完全重置游戏吗？（这将重新生成所有随机数）")) {
+                        // 清除本地存储
+                        localStorage.removeItem(CONFIG.storageKey);
+                        // 重新加载页面，这将触发 init -> loadState -> 重新生成 cardNumbers
+                        location.reload();
+                    }
+                });
+            }
+    
+            updateModeUI() {
+                const txt = document.getElementById('modeText');
+                const allCards = document.querySelectorAll('.card');
+    
+                if (this.state.isSquareMode) {
+                    txt.textContent = "正方模式 (背面)";
+                    txt.className = "text-purple-300 mt-2 text-sm font-bold";
+                    
+                    allCards.forEach(card => {
+                        const id = parseInt(card.parentElement.dataset.id);
+                        if (this.state.permanentRevealed.includes(id)) {
+                            card.classList.remove('flipped');
+                        } 
+                        else if (!this.state.lockedCards.includes(id)) {
+                            card.classList.add('flipped');
+                        }
+                    });
+                } else {
+                    txt.textContent = "反方模式 (正面)";
+                    txt.className = "text-cyan-300 mt-2 text-sm font-bold";
+                    
+                    allCards.forEach(card => {
+                        card.classList.remove('flipped');
+                    });
+                }
+            }
+    
+            updateCounters() {
+                document.getElementById('totalRoundDisplay').textContent = `第 ${this.state.round} 回合`;
+                document.getElementById('viewCounter').textContent = this.state.viewCount;
+                document.getElementById('lockCounter').textContent = this.state.lockCount;
+                
+                const lockBtn = document.getElementById('lockBtn');
+                if (this.state.lockCount >= CONFIG.maxLocks) {
+                    lockBtn.disabled = true;
+                }
+            }
+    
+            updateOrderDisplay() {
+                document.getElementById('orderDisplay').textContent = JSON.stringify(this.state.currentOrder);
+            }
+    
+            startInteractionMode(mode, text) {
+                this.state.interactionMode = mode;
+                const mask = document.getElementById('interactionMask');
+                const span = document.getElementById('interactionText');
+                span.textContent = text;
+                mask.classList.add('active');
+            }
+    
+            endInteractionMode() {
+                this.state.interactionMode = 'idle';
+                document.getElementById('interactionMask').classList.remove('active');
+            }
+    
+            showMessage(msg, type = 'normal') {
+                const div = document.createElement('div');
+                div.className = `fixed top-10 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg text-white shadow-xl z-50 font-bold transition-all duration-500 ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
+                div.textContent = msg;
+                document.body.appendChild(div);
+                
+                anime({
+                    targets: div,
+                    translateY: [-20, 0],
+                    opacity: [0, 1],
+                    duration: 400
+                });
+    
+                setTimeout(() => {
+                    anime({
+                        targets: div,
+                        translateY: -20,
+                        opacity: 0,
+                        duration: 400,
+                        complete: () => div.remove()
+                    });
+                }, 2000);
+            }
+    
+            checkWin() {
+                const isCorrect = JSON.stringify(this.state.currentOrder) === JSON.stringify(this.correctOrder);
+                if (isCorrect && this.state.round <= CONFIG.maxRounds) {
+                    setTimeout(() => {
+                        anime({
+                            targets: '.card',
+                            rotateZ: '1turn',
+                            delay: anime.stagger(100),
+                            complete: () => alert("恭喜通关！")
+                        });
+                    }, 500);
+                }
+            }
+        }
+    
+        window.onload = () => {
+            new PuzzleGame();
+        };
+    </script>
+    
+
+</body>
+</html>
